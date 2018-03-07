@@ -11,12 +11,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import nl.bravobit.ffmpeg.ExecuteBinaryResponseHandler;
 import nl.bravobit.ffmpeg.FFcommandExecuteResponseHandler;
 import nl.bravobit.ffmpeg.FFmpeg;
 import nl.bravobit.ffmpeg.FFprobe;
-import nl.bravobit.ffmpeg.FFtask;
 import nl.bravobit.ffmpeg.exceptions.FFmpegCommandAlreadyRunningException;
 import nl.bravobit.ffmpeg.exceptions.FFprobeCommandAlreadyRunningException;
 
@@ -26,13 +28,14 @@ import nl.bravobit.ffmpeg.exceptions.FFprobeCommandAlreadyRunningException;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private static String M3U8_URL = "http://res.pmit.cn/F3Video/hls/a5814959235386e4e7126573030c4d79/list.m3u8";
-    private TextView mTextViewCmd, mTextViewProgress;
+    private TextView mTextViewCmd, mTextViewProgress,mTextView;
     private Button mButton;
 
     FFmpeg mFFmpeg;
     FFprobe mFFprobe;
     private static String TAG = "MainActivity";
 
+    String result="   Duration: 00:21:41.32, start: 1.433589, bitrate: 0 kb/s";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,6 +49,54 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mButton.setOnClickListener(this);
         mTextViewCmd = findViewById(R.id.cmd_tv);
         mTextViewProgress = findViewById(R.id.progress_tv);
+        mTextView = findViewById(R.id.tv);
+//        videoLengthTime();
+    }
+
+    Pattern mPattern = Pattern.compile("Duration: ([\\d\\w:]+)");
+    long timeLength = 0;
+
+    /**获取视频总时长*/
+    private long videoLengthTime(String result) {
+        if (result.contains("Duration")){
+            Matcher matcher = mPattern.matcher(result);
+            matcher.find();
+            String tempTime = String.valueOf(matcher.group(0));
+            tempTime = tempTime.substring(10);
+            Log.e(TAG,"tempTime:"+tempTime);
+            String[] arrayTime = tempTime.split(":");
+            timeLength =
+                    TimeUnit.HOURS.toSeconds(Long.parseLong(arrayTime[0]))
+                            + TimeUnit.MINUTES.toSeconds(Long.parseLong(arrayTime[1]))
+                            + Long.parseLong(arrayTime[2]);
+            Log.e(TAG,"lengthTime:"+timeLength);
+            return timeLength;
+        }
+        return timeLength;
+    }
+
+    Pattern pattern = Pattern.compile("time=([\\d\\w:]+)");
+    long thisLength = 0;
+    private long getProgress(String message) {
+
+        if (message.contains("speed")) {
+            Matcher matcher = pattern.matcher(message);
+            matcher.find();
+            String tempTime = String.valueOf(matcher.group(1));
+//            LogUtils.e( "getProgress: tempTime " + tempTime);
+            String[] arrayTime = tempTime.split(":");
+            long currentTime =
+                    TimeUnit.HOURS.toSeconds(Long.parseLong(arrayTime[0]))
+                            + TimeUnit.MINUTES.toSeconds(Long.parseLong(arrayTime[1]))
+                            + Long.parseLong(arrayTime[2]);
+            long videoLengthInSec = timeLength;
+            Log.e(TAG, videoLengthInSec+"============");
+            thisLength = 100 * currentTime/videoLengthInSec;
+            Log.e( TAG,"getProgressTime -> " + currentTime + "s % -> " + thisLength);
+
+            return thisLength;
+        }
+        return thisLength;
     }
 
     private void initData() {
@@ -69,18 +120,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         /**正则去空*/
         String[] command = cmd.split(" ");
         try {
-            final FFtask fFtask=FFmpeg.getInstance(this).execute(command, new ExecuteBinaryResponseHandler() {
+            FFmpeg.getInstance(this).execute(command, new FFcommandExecuteResponseHandler() {
                 @Override
                 public void onSuccess(String message) {
                     Log.e("onSuccess:", message);
-                    mTextViewProgress.setText("onSuccess:\n" + message);
+                    mTextView.setText("onSuccess:\n" + message);
 
                 }
 
                 @Override
-                public void onProgress(String message) {
+                public void onProgress(final String message) {
                     Log.i("onProgress:", message);
-                    mTextViewProgress.setText(message);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            long pg = videoLengthTime(message);
+                            if (pg > 0) {
+//                                getProgress(message);
+                                mTextViewProgress.setText("已完成："+getProgress(message));
+                            }
+
+                        }
+                    });
+                    mTextView.setText(message);
                 }
 
                 @Override
@@ -102,7 +164,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         @Override
                         public void run() {
                             if (downloadContent > 0) {
-                                downloadFFmpegM3U8();
+//                                downloadFFmpegM3U8();
                                 downloadContent--;
                             }
                         }
@@ -110,13 +172,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
 
             });
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    Log.e("ExampleActivity", "STOPPING THE RENDERING!");
-                    fFtask.sendQuitSignal();
-                }
-            }, 8000);
         } catch (FFmpegCommandAlreadyRunningException e) {
             e.printStackTrace();
         }
@@ -145,7 +200,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 @Override
                 public void onProgress(String message) {
-                    mTextViewProgress.setText(message);
+                    mTextView.setText(message);
 
                 }
 
@@ -177,12 +232,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             FFmpeg.getInstance(this).execute(new String[]{"-version"}, new ExecuteBinaryResponseHandler() {
                 @Override
                 public void onSuccess(String message) {
-                    mTextViewProgress.setText("onSuccess\n" + message);
+                    mTextView.setText("onSuccess\n" + message);
                 }
 
                 @Override
                 public void onProgress(String message) {
-                    mTextViewProgress.setText("onProgress\n" + message);
+                    mTextView.setText("onProgress\n" + message);
 
                 }
             });
