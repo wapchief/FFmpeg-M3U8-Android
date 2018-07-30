@@ -17,33 +17,42 @@
         android:id="@+id/url_et"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="15dp"/>
+        android:padding="15dp" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
-    <Button
-        android:id="@+id/bt"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="FFmpeg下载"/>
+
+        <Button
+            android:id="@+id/bt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="FFmpeg下载" />
 
         <Button
             android:id="@+id/bt2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="下载方式2"/>
+            android:text="下载方式2" />
+
+        <Button
+            android:id="@+id/bt3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="下载方式3" />
     </LinearLayout>
+
     <TextView
         android:id="@+id/progress_tv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
+
     <TextView
         android:id="@+id/tv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
-        android:scrollbars="vertical"/>
+        android:scrollbars="vertical"
+        android:text="Hello World!" />
 
 </LinearLayout>

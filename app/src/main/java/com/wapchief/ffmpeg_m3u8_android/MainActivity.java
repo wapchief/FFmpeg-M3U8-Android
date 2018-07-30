@@ -20,6 +20,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import VideoHandle.EpEditor;
+import VideoHandle.EpVideo;
+import VideoHandle.OnEditorListener;
 import nl.bravobit.ffmpeg.ExecuteBinaryResponseHandler;
 import nl.bravobit.ffmpeg.FFcommandExecuteResponseHandler;
 import nl.bravobit.ffmpeg.FFmpeg;
@@ -32,8 +35,8 @@ import nl.bravobit.ffmpeg.exceptions.FFmpegCommandAlreadyRunningException;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     private static String M3U8_URL = "http://res.pmit.cn/F3Video/hls/a5814959235386e4e7126573030c4d79/list.m3u8";
-    private TextView mTextViewCmd, mTextViewProgress,mTextView;
-    private Button mButton,mButton2;
+    private TextView mTextViewCmd, mTextViewProgress, mTextView;
+    private Button mButton, mButton2,mButton3;
     private EditText mEditText;
 
     FFmpeg mFFmpeg;
@@ -58,25 +61,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mTextViewProgress = findViewById(R.id.progress_tv);
         mTextView = findViewById(R.id.tv);
         mEditText.setText(M3U8_URL);
+        mButton3 = findViewById(R.id.bt3);
+        mButton3.setOnClickListener(this);
     }
 
     Pattern mPattern = Pattern.compile("Duration: ([\\d\\w:]+)");
     long timeLength = 0;
 
-    /**获取视频总时长*/
+    /**
+     * 获取视频总时长
+     */
     private long videoLengthTime(String result) {
-        if (result.contains("Duration")){
+        if (result.contains("Duration")) {
             Matcher matcher = mPattern.matcher(result);
             matcher.find();
             String tempTime = String.valueOf(matcher.group(0));
             tempTime = tempTime.substring(10);
-            Log.e(TAG,"tempTime:"+tempTime);
+            Log.e(TAG, "tempTime:" + tempTime);
             String[] arrayTime = tempTime.split(":");
             timeLength =
                     TimeUnit.HOURS.toSeconds(Long.parseLong(arrayTime[0]))
                             + TimeUnit.MINUTES.toSeconds(Long.parseLong(arrayTime[1]))
                             + Long.parseLong(arrayTime[2]);
-            Log.e(TAG,"lengthTime:"+timeLength);
+            Log.e(TAG, "lengthTime:" + timeLength);
             return timeLength;
         }
         return timeLength;
@@ -88,6 +95,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     /**
      * 进度
+     *
      * @param message 日志
      * @return
      */
@@ -104,9 +112,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             + TimeUnit.MINUTES.toSeconds(Long.parseLong(arrayTime[1]))
                             + Long.parseLong(arrayTime[2]);
             long videoLengthInSec = timeLength;
-            Log.e(TAG, videoLengthInSec+"============");
-            thisLength = 100 * currentTime/videoLengthInSec;
-            Log.e( TAG,"getProgressTime -> " + currentTime + "s % -> " + thisLength);
+            Log.e(TAG, videoLengthInSec + "============");
+            thisLength = 100 * currentTime / videoLengthInSec;
+            Log.e(TAG, "getProgressTime -> " + currentTime + "s % -> " + thisLength);
 
             return thisLength;
         }
@@ -129,8 +137,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * 下载
      */
     private Handler handler = new Handler();
+
     private void downloadFFmpegM3U8(String m3U8_URL) {
-        cmd = String.format("-i %s -acodec %s -bsf:a aac_adtstoasc -vcodec %s %s", m3U8_URL, "copy", "copy", path + System.currentTimeMillis() + ".mp4");
+        cmd = String.format("-i %s -acodec %s -bsf:a aac_adtstoasc -vcodec %s %s ", m3U8_URL, "copy", "copy", path + System.currentTimeMillis() + ".mp4");
         /**正则去空*/
         String[] command = cmd.split(" ");
         try {
@@ -151,7 +160,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             long pg = videoLengthTime(message);
                             if (pg > 0) {
 //                                getProgress(message);
-                                mTextViewProgress.setText("已完成："+getProgress(message)+"%");
+                                mTextViewProgress.setText("已完成：" + getProgress(message) + "%");
                             }
 
                         }
@@ -181,7 +190,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //                                downloadFFmpegM3U8();
                                 downloadContent--;
                             }
-                            mTextViewProgress.setText("已完成：100"+"%");
+                            mTextViewProgress.setText("已完成：100" + "%");
                         }
                     }, 5000);
                 }
@@ -216,35 +225,95 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     int downloadContent = 2;
+
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.bt) {
             if (FFmpeg.getInstance(this).isSupported()) {
                 downloadContent = 2;
-                    downloadFFmpegM3U8(mEditText.getText().toString());
+                downloadFFmpegM3U8(mEditText.getText().toString());
             } else {
                 Toast.makeText(this, "请检查是否安装了FFmpeg", Toast.LENGTH_LONG).show();
             }
         }
 
         if (v.getId() == R.id.bt2) {
-            startDownload(mEditText.getText().toString());
+//            if (isFileExists(path + "down.m3u8")) {
+//                startDownload(path + "down.m3u8");
+//            } else {
+                startDownload(mEditText.getText().toString());
+
+//            }
+        }
+
+        if (v.getId() == R.id.bt3) {
+//            epVideoM3u8();
+            epVideoM3u8Cmd();
         }
     }
 
+    private void epVideoM3u8Cmd() {
+        EpEditor.execCmd(
+                "-i https://preview.mypsy365.com/app_dev.php/hls/232/stream/sd/IWQrlWQun45sLBscH9lMyOLU8qJhFsZK.m3u8?1532756203 -acodec copy -bsf:a aac_adtstoasc -vcodec copy /storage/emulated/0/m3u8/download/video/275812421676F545E668AD594F966805.mp4",
+                0, new OnEditorListener() {
+                    @Override
+                    public void onSuccess() {
+                        Log.e(TAG,"onSuccess");
+                    }
+
+                    @Override
+                    public void onFailure() {
+                        Log.e(TAG,"onFailure");
+                    }
+
+                    @Override
+                    public void onProgress(float v) {
+                        Log.e(TAG, "onProgress:" + v);
+                    }
+                });
+    }
+
+    private void epVideoM3u8() {
+        EpVideo epVideo = new EpVideo(mEditText.getText().toString());
+        EpEditor.OutputOption outputOption = new EpEditor.OutputOption(path + System.currentTimeMillis() + ".mp4");
+        outputOption.frameRate = 30;//输出视频帧率,默认30
+        outputOption.bitRate = 10;//输出视频码率,默认10
+        EpEditor.exec(epVideo, outputOption, new OnEditorListener() {
+            @Override
+            public void onSuccess() {
+                Log.e("epVideo-------", "onSuccess");
+                mTextView.setText("开始下载");
+            }
+
+            @Override
+            public void onFailure() {
+                Log.e("epVideo-------", "onSuccess");
+                mTextView.setText("下载失败");
+            }
+
+            @Override
+            public void onProgress(float progress) {
+                //这里获取处理进度
+                mTextViewProgress.setText("已完成" + progress + "%");
+            }
+        });
+    }
 
     /**
      * 下载M3u8视频
+     *
      * @param mediaUrls
      */
     M3U8DownloadTask downloadTask = new M3U8DownloadTask("1001");
     long lastLength = 0L;
+
     private void startDownload(final String mediaUrls) {
         downloadTask.setSaveFilePath(path + System.currentTimeMillis() + ".ts");
         downloadTask.download(mediaUrls, new OnDownloadListener() {
             @Override
             public void onDownloading(long itemFileSize, int totalTs, int curTs) {
-                Log.e(TAG, "onDownloading:"+itemFileSize+","+totalTs+","+curTs);
+                Log.e(TAG, "onDownloading:" + itemFileSize + "," + totalTs + "," + curTs);
+                mTextViewProgress.setText("已完成" + (curTs/totalTs) + "%");
             }
 
             //下载完成
@@ -257,15 +326,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             //下载进度回调
             @Override
             public void onProgress(final long curLength) {
+                Log.e("onProgress", curLength + "\n" + lastLength);
                 if (curLength - lastLength > 0) {
                     //下载速度
                     final String speed = NetSpeedUtils.getInstance().displayFileSize(curLength - lastLength) + "/s";
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            mTextView.setText(curLength+"");
-                            mTextViewProgress.setText("已完成"+(curLength+"").substring(0,2)+"%");
-                            Log.e(TAG, "onProgress:"+curLength);
+                            mTextView.setText(speed + "");
+                            Log.e(TAG, "onProgress:" + speed);
                         }
                     });
                     lastLength = curLength;
@@ -276,7 +345,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             //开始下载
             @Override
             public void onStart() {
-                Log.e(TAG, "onStart:" );
+                Log.e(TAG, "onStart:");
             }
 
             //下载出错
@@ -288,4 +357,37 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         });
     }
+
+
+    /**
+     * Return whether the file exists.
+     *
+     * @param filePath The path of file.
+     * @return {@code true}: yes<br>{@code false}: no
+     */
+    public static boolean isFileExists(final String filePath) {
+        return isFileExists(getFileByPath(filePath).toString());
+    }
+
+
+    /**
+     * Return the file by path.
+     *
+     * @param filePath The path of file.
+     * @return the file
+     */
+    public static File getFileByPath(final String filePath) {
+        return isSpace(filePath) ? null : new File(filePath);
+    }
+
+    private static boolean isSpace(final String s) {
+        if (s == null) return true;
+        for (int i = 0, len = s.length(); i < len; ++i) {
+            if (!Character.isWhitespace(s.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 }

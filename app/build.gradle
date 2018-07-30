@@ -29,5 +29,7 @@ dependencies {
     implementation 'nl.bravobit:android-ffmpeg:1.1.1'
     //m3u8下载
     implementation 'com.jwkj:M3U8Manger:v2.3.0'
+    //ffmpeg视频处理
+    implementation 'com.github.yangjie10930:EpMedia:v0.9.5'
 
 }
